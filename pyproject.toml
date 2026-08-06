@@ -1,16 +1,15 @@
 [project]
 name = "apigator"
 dynamic = ["version"]
-description = "APIgator - Standalone API documentation and testing tool"
+description = "APIgator - Lightweight HTTP API Aggregator with jq filtering"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [
-    {name = "Niklas Bettgen",email = "niklas@bettgen.de"},
+    {name = "Niklas Bettgen", email = "niklas@bettgen.de"},
 ]
-keywords = ["api", "documentation", "testing"]
+keywords = ["api", "http", "aggregator", "jq"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -18,22 +17,24 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries",
 ]
 
 dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "httpx>=0.24.0",
+    "pyyaml>=6.0",
 ]
 version = "0.1.0"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "ruff>=0.5.0",
-    "isort>=5.13.0",
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "pyright>=1.1.350",
+    "ruff>=0.16.1",
+    "isort>=8.0.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pyright>=1.1.411",
 ]
 
 [build-system]

@@ -10,15 +10,14 @@ import yaml
 from fastapi import FastAPI, HTTPException
 
 CONFIG_FILE = "/config/config.yaml"
-VERSION = os.getenv("APIGATOR_VERSION", "unknown")
-config = None
+VERSION = os.getenv("APIGATOR_VERSION", "(unknown)")
+config = {}
 app = FastAPI(title="APIgator")
 
 
-class ResponseStatus(str, Enum):
+class ResponseStatus(Enum):
     SUCCESS = "success"
     ERROR = "error"
-    OK = "ok"
 
 
 def load_config():
@@ -31,7 +30,9 @@ def load_config():
         config = yaml.safe_load(config_raw)
 
 
-def create_response(status: ResponseStatus, data: dict = None, error: str = "", message: str = ""):
+def create_response(
+    status: ResponseStatus, data: dict | None = None, error: str = "", message: str = ""
+):
     """Standard response format of consistent structure"""
     return {
         "version": VERSION,
@@ -121,7 +122,7 @@ async def execute_query(query_def):
 
 @app.get("/health")
 async def health():
-    return create_response(status=ResponseStatus.OK, message="APIgator is running")
+    return create_response(status=ResponseStatus.SUCCESS, message="APIgator is running")
 
 
 @app.get("/query/{query_name}")
