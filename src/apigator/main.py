@@ -3,19 +3,21 @@ import os
 import subprocess
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
+from fastapi.responses import JSONResponse
 import httpx
 import uvicorn
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 CONFIG_FILE = "/config/config.yaml"
-VERSION = os.getenv("APIGATOR_VERSION", "(unknown)")
+VERSION = os.getenv("APIGATOR_VERSION") or "(unknown)"
 config = {}
 app = FastAPI(title="APIgator")
 
 
-class ResponseStatus(Enum):
+class RspStatus(Enum):
     SUCCESS = "success"
     ERROR = "error"
 
@@ -30,99 +32,71 @@ def load_config():
         config = yaml.safe_load(config_raw)
 
 
-def create_response(
-    status: ResponseStatus, data: dict | None = None, error: str = "", message: str = ""
-):
+def create_response(status: RspStatus, data: dict | None = None, error: str | None = None):
     """Standard response format of consistent structure"""
     return {
-        "version": VERSION,
         "status": status.value,
         "timestamp": datetime.utcnow().isoformat(),
-        "data": data if data is not None else {},
-        "error": error,
-        "message": message,
+        "data": data or {},
+        "error": error or ""
     }
 
-
-def extract_field(data: dict, path: str):
-    """Extracts a value from a (nested) object via path, e.g. 'status.cpu.usage'"""
-    keys = path.split(".")
-    current = data
-    for key in keys:
-        if isinstance(current, dict) and key in current:
-            current = current[key]
-        else:
-            return None
-    return current
+class QueryError(Exception):
+    def __init__(self, msg):
+        self.msg: str = msg
 
 
 async def execute_query(query_def):
-    results = {}
-    async with httpx.AsyncClient(timeout=10) as client:
+    results: dict[str, Any] = {}
+    default_timeout = config.get("default_timeout", 10)
+    async with httpx.AsyncClient() as client:
         for endpoint in query_def:
+            timeout = endpoint.get("timeout", default_timeout)
             try:
                 response = await client.request(
                     method=endpoint.get("method", "GET"),
                     url=endpoint["url"],
                     headers=endpoint.get("headers"),
                     params=endpoint.get("params"),
-                    content=json.dumps(endpoint.get("body")) if endpoint.get("body") else None,
+                    content=json.dumps(endpoint.get("body")),
+                    timeout=timeout,
                 )
                 api_data = response.json()
 
                 fields = endpoint.get("fields", [])
+                for field in fields:
+                    for output_key, jq_filter in field.items():
+                        try:
+                            result = subprocess.run(
+                                ("jq", jq_filter),
+                                input=json.dumps(api_data),
+                                capture_output=True,
+                                text=True,
+                            )
+                            if result.returncode == 0:
+                                value = json.loads(result.stdout)
+                            else:
+                                raise QueryError(f"jq filter failed for '{output_key}': {result.stderr}")
+                            results[output_key] = value
 
-                if not fields:
-                    results[endpoint.get("key", endpoint["url"])] = api_data
-                else:
-                    for field_def in fields:
-                        for output_key, field_config in field_def.items():
-                            try:
-                                if isinstance(field_config, str):
-                                    path = field_config
-                                    jq_filter = None
-                                elif isinstance(field_config, dict):
-                                    path = field_config.get("path", "")
-                                    jq_filter = field_config.get("filter")
-                                else:
-                                    return None, f"Invalid field config for '{output_key}'"
-
-                                value = extract_field(api_data, path)
-
-                                if jq_filter and value is not None:
-                                    result = subprocess.run(
-                                        ["jq", jq_filter],
-                                        input=json.dumps(value),
-                                        capture_output=True,
-                                        text=True,
-                                    )
-                                    if result.returncode == 0:
-                                        value = json.loads(result.stdout)
-                                    else:
-                                        return (
-                                            None,
-                                            f"jq filter failed for '{output_key}': {result.stderr}",
-                                        )
-
-                                results[output_key] = value
-                            except Exception as e:
-                                return None, f"Error processing field '{output_key}': {e!s}"
+                        except Exception as e:
+                            raise QueryError(f"Error processing field '{output_key}': {e!s}")
 
             except httpx.ConnectError:
-                return None, f"Connection failed for '{endpoint['url']}'"
+                raise QueryError(f"Connection failed for '{endpoint['url']}'")
             except httpx.TimeoutException:
-                return None, f"Request timeout for '{endpoint['url']}'"
+                raise QueryError(f"Request timeout for '{endpoint['url']}'")
             except json.JSONDecodeError:
-                return None, f"Invalid JSON response from '{endpoint['url']}'"
+                raise QueryError(f"Invalid JSON response from '{endpoint['url']}'")
             except Exception as e:
-                return None, f"Error processing endpoint '{endpoint['url']}': {e!s}"
+                raise QueryError(f"Error processing endpoint '{endpoint['url']}': {e!s}")
 
-    return results, None
+    return results
 
 
 @app.get("/health")
 async def health():
-    return create_response(status=ResponseStatus.SUCCESS, message="APIgator is running")
+    return create_response(RspStatus.SUCCESS, data={"info": "APIgator is up and running! :)", "version": VERSION})
 
 
 @app.get("/query/{query_name}")
@@ -130,36 +104,23 @@ async def get_query(query_name: str):
     queries = config.get("queries", {})
 
     if query_name not in queries:
-        raise HTTPException(
+        return JSONResponse(
             status_code=404,
-            detail=create_response(
-                status=ResponseStatus.ERROR,
-                error="query_not_found",
-                message=f"Query '{query_name}' not found",
-            ),
+            content=create_response(RspStatus.ERROR, error=f"Query '{query_name}' not found")
         )
 
     try:
-        results, error = await execute_query(queries[query_name])
-
-        if error:
-            raise HTTPException(
-                status_code=502,
-                detail=create_response(
-                    status=ResponseStatus.ERROR, error="upstream_error", message=error
-                ),
-            )
-
-        return create_response(status=ResponseStatus.SUCCESS, data=results)
-
-    except HTTPException:
-        raise
+        results = await execute_query(queries[query_name])
+        return create_response(status=RspStatus.SUCCESS, data=results)
+    except QueryError as e:
+        return JSONResponse(
+            status_code=502,
+            content=create_response(status=RspStatus.ERROR, error=e.msg),
+        )
     except Exception:
-        raise HTTPException(
+        return JSONResponse(
             status_code=500,
-            detail=create_response(
-                status=ResponseStatus.ERROR, error="internal_error", message="Internal server error"
-            ),
+            content=create_response(status=RspStatus.ERROR, error="Internal server error"),
         )
 
 
