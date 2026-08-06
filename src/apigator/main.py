@@ -10,7 +10,7 @@ import yaml
 from fastapi import FastAPI, HTTPException
 
 CONFIG_FILE = "/config/config.yaml"
-VERSION = os.getenv("APIGATOR_VERSION", "unknown")
+VERSION = os.getenv("APIGATOR_VERSION", "(unknown)")
 config = {}
 app = FastAPI(title="APIgator")
 
