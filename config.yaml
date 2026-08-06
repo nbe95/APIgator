@@ -1,0 +1,24 @@
+port: 8080
+host: 0.0.0.0
+
+queries:
+  sysinfo:
+    - url: http://monitoring.api/api/v1/cpu
+      method: GET
+      fields:
+        - cpu_usage: stats.cpu.usage
+        - disk_full: stats.disk.full
+        - temp:
+            path: stats.temp
+            filter: round
+
+    - url: http://another.api/memory
+      method: GET
+      headers:
+        Authorization: Bearer ${API_TOKEN}
+      fields:
+        - memory_used: data.used
+        - memory_total: data.total
+        - memory_percent:
+            path: data.percent
+            filter: round
