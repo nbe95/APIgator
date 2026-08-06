@@ -1,22 +1,25 @@
 import json
-import yaml
-import httpx
-import subprocess
 import os
-from fastapi import FastAPI, HTTPException
+import subprocess
 from datetime import datetime
 from enum import Enum
+
+import httpx
 import uvicorn
+import yaml
+from fastapi import FastAPI, HTTPException
 
 CONFIG_FILE = "/config/config.yaml"
 VERSION = os.getenv("APIGATOR_VERSION", "unknown")
 config = None
 app = FastAPI(title="APIgator")
 
+
 class ResponseStatus(str, Enum):
     SUCCESS = "success"
     ERROR = "error"
     OK = "ok"
+
 
 def load_config():
     global config
@@ -27,12 +30,8 @@ def load_config():
             config_raw = config_raw.replace(f"${key}", str(value))
         config = yaml.safe_load(config_raw)
 
-def create_response(
-    status: ResponseStatus,
-    data: dict = None,
-    error: str = "",
-    message: str = ""
-):
+
+def create_response(status: ResponseStatus, data: dict = None, error: str = "", message: str = ""):
     """Standard response format of consistent structure"""
     return {
         "version": VERSION,
@@ -40,8 +39,9 @@ def create_response(
         "timestamp": datetime.utcnow().isoformat(),
         "data": data if data is not None else {},
         "error": error,
-        "message": message
+        "message": message,
     }
+
 
 def extract_field(data: dict, path: str):
     """Extracts a value from a (nested) object via path, e.g. 'status.cpu.usage'"""
@@ -54,6 +54,7 @@ def extract_field(data: dict, path: str):
             return None
     return current
 
+
 async def execute_query(query_def):
     results = {}
     async with httpx.AsyncClient(timeout=10) as client:
@@ -64,7 +65,7 @@ async def execute_query(query_def):
                     url=endpoint["url"],
                     headers=endpoint.get("headers"),
                     params=endpoint.get("params"),
-                    content=json.dumps(endpoint.get("body")) if endpoint.get("body") else None
+                    content=json.dumps(endpoint.get("body")) if endpoint.get("body") else None,
                 )
                 api_data = response.json()
 
@@ -92,16 +93,19 @@ async def execute_query(query_def):
                                         ["jq", jq_filter],
                                         input=json.dumps(value),
                                         capture_output=True,
-                                        text=True
+                                        text=True,
                                     )
                                     if result.returncode == 0:
                                         value = json.loads(result.stdout)
                                     else:
-                                        return None, f"jq filter failed for '{output_key}': {result.stderr}"
+                                        return (
+                                            None,
+                                            f"jq filter failed for '{output_key}': {result.stderr}",
+                                        )
 
                                 results[output_key] = value
                             except Exception as e:
-                                return None, f"Error processing field '{output_key}': {str(e)}"
+                                return None, f"Error processing field '{output_key}': {e!s}"
 
             except httpx.ConnectError:
                 return None, f"Connection failed for '{endpoint['url']}'"
@@ -110,16 +114,15 @@ async def execute_query(query_def):
             except json.JSONDecodeError:
                 return None, f"Invalid JSON response from '{endpoint['url']}'"
             except Exception as e:
-                return None, f"Error processing endpoint '{endpoint['url']}': {str(e)}"
+                return None, f"Error processing endpoint '{endpoint['url']}': {e!s}"
 
     return results, None
 
+
 @app.get("/health")
 async def health():
-    return create_response(
-        status=ResponseStatus.OK,
-        message="APIgator is running"
-    )
+    return create_response(status=ResponseStatus.OK, message="APIgator is running")
+
 
 @app.get("/query/{query_name}")
 async def get_query(query_name: str):
@@ -131,8 +134,8 @@ async def get_query(query_name: str):
             detail=create_response(
                 status=ResponseStatus.ERROR,
                 error="query_not_found",
-                message=f"Query '{query_name}' not found"
-            )
+                message=f"Query '{query_name}' not found",
+            ),
         )
 
     try:
@@ -142,28 +145,22 @@ async def get_query(query_name: str):
             raise HTTPException(
                 status_code=502,
                 detail=create_response(
-                    status=ResponseStatus.ERROR,
-                    error="upstream_error",
-                    message=error
-                )
+                    status=ResponseStatus.ERROR, error="upstream_error", message=error
+                ),
             )
 
-        return create_response(
-            status=ResponseStatus.SUCCESS,
-            data=results
-        )
+        return create_response(status=ResponseStatus.SUCCESS, data=results)
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=500,
             detail=create_response(
-                status=ResponseStatus.ERROR,
-                error="internal_error",
-                message="Internal server error"
-            )
+                status=ResponseStatus.ERROR, error="internal_error", message="Internal server error"
+            ),
         )
+
 
 if __name__ == "__main__":
     load_config()

@@ -1,0 +1,112 @@
+[project]
+name = "apigator"
+dynamic = ["version"]
+description = "APIgator - Standalone API documentation and testing tool"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    {name = "Niklas Bettgen",email = "niklas@bettgen.de"},
+]
+keywords = ["api", "documentation", "testing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+]
+version = "0.1.0"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",
+    "isort>=5.13.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pyright>=1.1.350",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+version = { source = "file", path = "src/apigator/__init__.py" }
+distribution = false
+
+[tool.pdm.scripts]
+lint = "ruff check src/ tests/"
+format = "ruff format src/ tests/"
+isort = "isort src/ tests/"
+check = { composite = ["lint", "isort --check-only", "pyright"] }
+test = "pytest"
+test-cov = "pytest --cov=src/apigator --cov-report=term-missing --cov-report=html"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line-length (handled by ruff format)
+    "ARG001", # unused function argument
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apigator"]
+known-third-party = []
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["apigator"]
+src_paths = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv"]
+typeCheckingMode = "standard"
+pythonVersion = "3.11"
+reportGeneralTypeIssues = true
+reportOptionalMemberAccess = true
+reportOptionalSubscript = true
+reportPrivateImportUsage = false
+reportConstantRedefinition = true
