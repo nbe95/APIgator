@@ -86,6 +86,7 @@ known_first_party = ["apigator"]
 src_paths = ["src", "tests"]
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
