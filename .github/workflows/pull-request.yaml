@@ -1,4 +1,4 @@
-name: Lint and test
+name: Check and test
 
 env:
   IMAGE_NAME: nbe95/apigator
@@ -41,8 +41,8 @@ jobs:
           base-branch: true
           with-v: false
 
-  lint:
-    name: Lint Python code
+  check:
+    name: Lint and check code
     runs-on: ubuntu-latest
     needs:
       - validate-release
@@ -55,6 +55,6 @@ jobs:
       - name: Install dependencies
         run: |
           pdm sync -d
-      - name: Run linters
+      - name: Run linter and type checker
         run: |
-          pdm run lint
+          pdm run check
