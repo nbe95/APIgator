@@ -5,11 +5,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from fastapi.responses import JSONResponse
 import httpx
 import uvicorn
 import yaml
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 CONFIG_FILE = "/config/config.yaml"
 VERSION = os.getenv("APIGATOR_VERSION") or "(unknown)"
@@ -38,8 +38,9 @@ def create_response(status: RspStatus, data: dict | None = None, error: str | No
         "status": status.value,
         "timestamp": datetime.utcnow().isoformat(),
         "data": data or {},
-        "error": error or ""
+        "error": error or "",
     }
+
 
 class QueryError(Exception):
     def __init__(self, msg):
@@ -76,7 +77,9 @@ async def execute_query(query_def):
                             if result.returncode == 0:
                                 value = json.loads(result.stdout)
                             else:
-                                raise QueryError(f"jq filter failed for '{output_key}': {result.stderr}")
+                                raise QueryError(
+                                    f"jq filter failed for '{output_key}': {result.stderr}"
+                                )
                             results[output_key] = value
 
                         except Exception as e:
@@ -96,7 +99,9 @@ async def execute_query(query_def):
 
 @app.get("/health")
 async def health():
-    return create_response(RspStatus.SUCCESS, data={"info": "APIgator is up and running! :)", "version": VERSION})
+    return create_response(
+        RspStatus.SUCCESS, data={"info": "APIgator is up and running! :)", "version": VERSION}
+    )
 
 
 @app.get("/query/{query_name}")
@@ -106,7 +111,7 @@ async def get_query(query_name: str):
     if query_name not in queries:
         return JSONResponse(
             status_code=404,
-            content=create_response(RspStatus.ERROR, error=f"Query '{query_name}' not found")
+            content=create_response(RspStatus.ERROR, error=f"Query '{query_name}' not found"),
         )
 
     try:

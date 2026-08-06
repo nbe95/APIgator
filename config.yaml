@@ -1,24 +1,37 @@
-port: 8080
-host: 0.0.0.0
+host: 0.0.0.0                                 # server address to listen on
+port: 8080                                    # server port
+default_timeout: 10                           # default timeout in seconds for all endpoints
 
-queries:
-  sysinfo:
-    - url: http://monitoring.api/api/v1/cpu
-      method: GET
+queries:                                      # predefined queries
+
+  # Basic example with two upstream queries
+  sysinfo:                                    # query named "sysinfo"
+    - url: http://my.api/status/system        # list of upstream APIs to fetch
       fields:
-        - cpu_usage: stats.cpu.usage
-        - disk_full: stats.disk.full
-        - temp:
-            path: stats.temp
-            filter: round
+        cpu_usage: .stats.cpu.usage           # fields names and values to gather in our response
+        temp: .stats.temperature
 
     - url: http://another.api/memory
-      method: GET
-      headers:
-        Authorization: Bearer ${API_TOKEN}
       fields:
-        - memory_used: data.used
-        - memory_total: data.total
-        - memory_percent:
-            path: data.percent
-            filter: round
+        memory_used: .cores[0].used
+        memory_percent: .cores[0].percent | round   # jq filter for rounded value
+
+    - url: http://yet.another.api/all
+      fields:
+        result: .                             # Fetch entire reponse as data
+
+  # Example with optional properties and complex jq filters
+  full-example:                               # query named "full-example"
+    - url: http://complex.example/memory
+      method: GET                             # optional HTTP method, defaults to GET
+      timeout: 15                             # optional timeout for this endpoint
+      headers:                                # optional headers
+        Authorization: Bearer ${API_TOKEN}
+      params:                                 # optional extra params
+        param1: some value
+      body:                                   # optional message body
+        foo: bar
+      fields:
+        rounded_2decimals: (. * 100 | round) / 100    # rounds a single float value to two decimals
+        sum_of_foos: map(.foo) | add                  # gives the sum of each "foo" item in an array
+        len_of_array: .somearray | length             # gets the length of a given array
