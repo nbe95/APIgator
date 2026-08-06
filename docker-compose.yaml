@@ -1,0 +1,7 @@
+services:
+  apigator:
+    image: nbe95/apigator:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/config/config.yaml
