@@ -5,7 +5,7 @@ single endpoint with field extraction and transformation.
 
 ## Features
 
-- 🔗 Aggregate multiple APIs in one query
+- 🔗 Aggregate multiple predefined APIs calls in one query
 - 🎯 Extract specific fields from responses
 - 🔄 Transform data with jq filters
 - 🐳 Self-hosted Docker container
@@ -13,90 +13,110 @@ single endpoint with field extraction and transformation.
 
 ## Quick Start
 
+Spin up a Docker container and edit your configuration as decribed below.
+
 ```sh
 docker run -d \
   -p 8080:8080 \
-  -v $(pwd)/config.yaml:/config/config.yaml \
+  -v $(pwd)/config.yaml:/app/config.yaml \
   nbe95/apigator:latest
 ```
 
-## Configuration
+### Configuration
 
-First, create a configuration file:
+Simply create a configuration file named `config.yaml` and mount it into the container:
 
 ```yaml
-# config.yaml
-host: 0.0.0.0                                 # server address to listen on
-port: 8080                                    # server port
-default_timeout: 10                           # default timeout in seconds for all endpoints
+# Server configuration
+host: 0.0.0.0
+port: 8080
+default_timeout: 10
 
-queries:                                      # predefined queries
+queries:
 
-  # Basic example with two upstream queries
-  sysinfo:                                    # query named "sysinfo"
-    - url: http://my.api/status/system        # list of upstream APIs to fetch
+  # Basic query definition "my-posts" with multiple upstream queries
+  my-posts:
+    - url: https://jsonplaceholder.typicode.com/posts/1   # upstream APIs to fetch
       fields:
-        cpu_usage: .stats.cpu.usage           # fields names and values to gather in our response
-        temp: .stats.temperature
+        - title                                           # fields to aggregate
+        - body
 
-    - url: http://another.api/memory
+    - url: https://jsonplaceholder.typicode.com/posts/2
       fields:
-        memory_used: .cores[0].used
-        memory_percent: .cores[0].percent | round   # jq filter for rounded value
+        another-title: .title                             # remapping of fields
+        another-body: .body
+        nested: .some.nested.object                       # nested objects, arrays, ...
+        array: .some.indexed[42].item
+        everything: .
 
-    - url: http://yet.another.api/all
-      fields:                                 # Short syntax for simple fields
-        - foo
-        - bar
-
-    - url: http://yet.another.api/all
+    - url: https://jsonplaceholder.typicode.com/posts
       fields:
-        result: .                             # Fetch entire reponse as data
+        total_posts: . | length                           # complex jq filters
+        sum_of_ids: map(.id) | add
+        rounded: .[42].userId | round
+        rounded_2decimals: (.[42].userId * 100 | round) / 100
 
 
-  # Example with optional properties and complex jq filters
-  full-example:                               # query named "full-example"
-    - url: http://complex.example/memory
-      method: GET                             # optional HTTP method, defaults to GET
-      timeout: 15                             # optional timeout for this endpoint
+  # Full example with optional properties
+  full-example:
+    - url: http://my.api/endpoint?foo=bar
+      method: POST                            # optional HTTP method, defaults to GET
+      timeout: 20                             # optional timeout in seconds for this endpoint
       headers:                                # optional headers
         Authorization: Bearer ${API_TOKEN}
-      params:                                 # optional extra params
+        ...
+      params:                                 # optional query params
         param1: some value
+        ...
       body:                                   # optional message body
         foo: bar
       fields:
-        rounded_2decimals: (. * 100 | round) / 100    # rounds a single float value to two decimals
-        sum_of_foos: map(.foo) | add                  # gives the sum of each "foo" item in an array
-        len_of_array: .somearray | length             # gets the length of a given array
+        ...
+
 ```
 
 ## Usage
 
-A GET request with the specified query name  returns
-aggregated data at once:
+A GET request with a specified query name returns all aggregated data at once.
+
+Using the config example from above:
 
 ```sh
-curl http://localhost:8080/query/sysinfo
+curl http://localhost:8080/query/my-posts
 ```
 
 ```json
 {
-  "status": "success",
-  "timestamp": "2024-01-15T10:30:45.123456",
-  "data": {
-    "cpu_usage": 45.2,
-    "temp": 65,
-    "memory_used": 8192,
-    "memory_percent": 50
-  },
-  "error": ""
+    "status": "success",
+    "timestamp": "2024-01-15T10:30:45.123456",
+    "data": {
+        "title": "sunt aut facere ...",
+        "body": "quia et suscipit ...",
+        "another-title": "qui est esse",
+        "another-body": "est rerum tempore ...",
+        "nested": null,
+        "array": null,
+        "everything": {
+            "userId": 1,
+            "id": 1,
+            "title": "qui est esse",
+            "body": "est rerum tempore ...",
+        },
+        "total_posts": 100,
+        "sum_of_ids": 5050,
+        "rounded": 5,
+        "rounded_2decimals": 5.00
+    },
+    "error": ""
 }
 ```
 
-## Environment Variables
+> [!NOTE]
+> Any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
 
-Always store sensitive values and credentials in an environment file. Reference it with
+### Environment Variables
+
+Always store sensitive values and credentials in an environment file. Reference them with
 `${SECRET_STUFF}`, for example:
 
 ```yaml
@@ -104,7 +124,7 @@ headers:
   Authorization: Bearer ${SOME_API_TOKEN}
 ```
 
-## Docker Compose
+### Docker Compose
 
 ```yaml
 services:
@@ -113,7 +133,7 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./config.yaml:/config/config.yaml
+      - ./config.yaml:/app/config.yaml
     environment:
       - SOME_API_TOKEN=...
 ```
@@ -123,17 +143,18 @@ services:
 | Endpoint      | Method    | Description                               |
 |---------------|-----------|-------------------------------------------|
 | /query/{name} | GET       | Execute query and return aggregated data  |
-| /health       | GET       | Health check                              |
+| /health       | GET       | General health check                      |
 
 ## ⚠️ Security Considerations
 
 APIgator is intended for internal use only:
 
-1. **Config is sensitive** – Never commit `config.yaml`. It contains API credentials and internal URLs.
+1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal URLs.
 1. **SSRF attacks** – Only trusted admins should modify the config.
 1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
 1. **No built-in auth** – Use a reverse proxy with authentication.
 1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
 
-When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting
-and network isolation.
+> [!WARNING]
+> When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting
+> and network isolation.

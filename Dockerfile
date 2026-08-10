@@ -29,6 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/.venv/ /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 COPY src /app/src
+COPY entrypoint.sh config.default.yaml /app
+
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
 
@@ -37,4 +40,4 @@ ARG VERSION_SHA
 ENV APIGATOR_VERSION="${VERSION}"
 ENV APIGATOR_VERSION_SHA="${VERSION_SHA}"
 
-CMD ["python", "src/apigator/main.py"]
+ENTRYPOINT ["/app/entrypoint.sh"]

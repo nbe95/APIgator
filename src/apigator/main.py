@@ -12,7 +12,7 @@ import yaml
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
-CONFIG_FILE = "/config/config.yaml"
+CONFIG_FILE = "./config.yaml"
 VERSION = os.getenv("APIGATOR_VERSION") or "(unknown)"
 INSTANCE_ID = str(uuid4())
 config = {}
@@ -72,7 +72,7 @@ async def execute_query(query_def):
 
                 fields = endpoint.get("fields", {})
                 if isinstance(fields, list):
-                    fields = {field: field for field in fields}
+                    fields = {field: f".{field}" for field in fields}
 
                 for output_key, jq_filter in fields.items():
                     try:
