@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from apigator.main import app
+from apigator.main import INSTANCE_ID, app
 
 
 @pytest.fixture
@@ -25,11 +25,12 @@ class TestHealthEndpoint:
         response = client.get("/health")
         data = response.json()
 
-        # Verify required fields exist and have correct types
         assert data["status"] == "success"
         assert isinstance(data["timestamp"], str)
         assert isinstance(data["data"], dict)
         assert isinstance(data["error"], str)
+
+        assert data["data"].get("instance_id") == INSTANCE_ID
 
         try:
             datetime.fromisoformat(data["timestamp"])
