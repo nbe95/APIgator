@@ -8,7 +8,7 @@ by checking the X-APIgator-Instance-ID header.
 import pytest
 from fastapi.testclient import TestClient
 
-from apigator.main import app, INSTANCE_ID
+from apigator.main import INSTANCE_ID, app
 
 
 @pytest.fixture

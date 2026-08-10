@@ -154,9 +154,8 @@ async def get_query(query_name: str, x_apigator_instance_id: str = Header(None))
 
 
 if __name__ == "__main__":
+    print(f"APIgator v{VERSION} running.")
     load_config()
-    print(f"APIgator v{VERSION} running")
-
     port = config.get("port", 8080)
     host = config.get("host", "0.0.0.0")
 
