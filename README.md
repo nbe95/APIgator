@@ -25,7 +25,7 @@ docker run -d \
 First, create a configuration file named `config.yaml`:
 
 ```yaml
-# Basic server configuration
+# Server configuration
 host: 0.0.0.0
 port: 8080
 default_timeout: 10
@@ -54,32 +54,12 @@ queries:
         rounded: .[42].userId | round
         rounded_2decimals: (.[42].userId * 100 | round) / 100
 
-  # With this config, a GET on /query/my-posts returns:
-  # "data": {
-  #     "title": "sunt aut facere ...",
-  #     "body": "quia et suscipit ...",
-  #     "another-title": "qui est esse",
-  #     "another-body": "est rerum tempore ...",
-  #     "nested": null,
-  #     "array": null,
-  #     "everything": {
-  #         "userId": 1,
-  #         "id": 1,
-  #         "title": "qui est esse",
-  #         "body": "est rerum tempore ...",
-  #     },
-  #     "total_posts": 100,
-  #     "sum_of_ids": 5050,
-  #     "rounded": 5,
-  #     "rounded_2decimals": 5.00
-  # }
-
 
   # Full example with optional properties:
   full-example:
     - url: http://my.api/endpoint?foo=bar
       method: POST                            # optional HTTP method, defaults to GET
-      timeout: 20                             # optional timeout for this endpoint
+      timeout: 20                             # optional timeout in seconds for this endpoint
       headers:                                # optional headers
         Authorization: Bearer ${API_TOKEN}
         ...
@@ -95,26 +75,42 @@ queries:
 
 ## Usage
 
-A GET request with the specified query name  returns
-aggregated data at once:
+A GET request with a specified query name returns all aggregated data at once.
+
+Using the example from above:
 
 ```sh
-curl http://localhost:8080/query/sysinfo
+curl http://localhost:8080/query/my-posts
 ```
 
 ```json
 {
-  "status": "success",
-  "timestamp": "2024-01-15T10:30:45.123456",
-  "data": {
-    "cpu_usage": 45.2,
-    "temp": 65,
-    "memory_used": 8192,
-    "memory_percent": 50
-  },
-  "error": ""
+    "status": "success",
+    "timestamp": "2024-01-15T10:30:45.123456",
+    "data": {
+        "title": "sunt aut facere ...",
+        "body": "quia et suscipit ...",
+        "another-title": "qui est esse",
+        "another-body": "est rerum tempore ...",
+        "nested": null,
+        "array": null,
+        "everything": {
+            "userId": 1,
+            "id": 1,
+            "title": "qui est esse",
+            "body": "est rerum tempore ...",
+        },
+        "total_posts": 100,
+        "sum_of_ids": 5050,
+        "rounded": 5,
+        "rounded_2decimals": 5.00
+    },
+    "error": ""
 }
 ```
+
+> [!NOTE]
+> Note that any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
 
 ## Environment Variables
 
@@ -135,7 +131,7 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./config.yaml:/config/config.yaml
+      - ./config.yaml:/app/config.yaml
     environment:
       - SOME_API_TOKEN=...
 ```
@@ -147,15 +143,14 @@ services:
 | /query/{name} | GET       | Execute query and return aggregated data  |
 | /health       | GET       | Health check                              |
 
-## ⚠️ Security Considerations
-
-APIgator is intended for internal use only:
-
-1. **Config is sensitive** – Never commit `config.yaml`. It contains API credentials and internal URLs.
-1. **SSRF attacks** – Only trusted admins should modify the config.
-1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
-1. **No built-in auth** – Use a reverse proxy with authentication.
-1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
-
-When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting
-and network isolation.
+> [!WARNING]
+> APIgator is intended for internal use only:
+>
+> 1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal URLs.
+> 1. **SSRF attacks** – Only trusted admins should modify the config.
+> 1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
+> 1. **No built-in auth** – Use a reverse proxy with authentication.
+> 1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
+>
+> When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting
+> and network isolation.
