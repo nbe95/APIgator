@@ -4,15 +4,17 @@ import subprocess
 from datetime import datetime
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
 import httpx
 import uvicorn
 import yaml
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
 CONFIG_FILE = "/config/config.yaml"
 VERSION = os.getenv("APIGATOR_VERSION") or "(unknown)"
+INSTANCE_ID = str(uuid4())
 config = {}
 app = FastAPI(title="APIgator")
 
@@ -54,10 +56,14 @@ async def execute_query(query_def):
         for endpoint in query_def:
             timeout = endpoint.get("timeout", default_timeout)
             try:
+                # Create headers dict with Instance-ID propagation
+                headers = (endpoint.get("headers") or {}).copy()
+                headers["X-APIgator-Instance-ID"] = INSTANCE_ID
+
                 response = await client.request(
                     method=endpoint.get("method", "GET"),
                     url=endpoint["url"],
-                    headers=endpoint.get("headers"),
+                    headers=headers,
                     params=endpoint.get("params"),
                     content=json.dumps(endpoint.get("body")),
                     timeout=timeout,
@@ -102,12 +108,28 @@ async def execute_query(query_def):
 @app.get("/health")
 async def health():
     return create_response(
-        RspStatus.SUCCESS, data={"info": "APIgator is up and running! :)", "version": VERSION}
+        RspStatus.SUCCESS,
+        data={
+            "info": "APIgator is up and running! :)",
+            "version": VERSION,
+            "instance_id": INSTANCE_ID,
+        },
     )
 
 
 @app.get("/query/{query_name}")
-async def get_query(query_name: str):
+async def get_query(query_name: str, x_apigator_instance_id: str = Header(None)):
+
+    if x_apigator_instance_id == INSTANCE_ID:
+        return JSONResponse(
+            status_code=400,
+            content=create_response(
+                RspStatus.ERROR,
+                error="Self-referencing request detected."
+                " You didn't want to create an infinite loop, did you?",
+            ),
+        )
+
     queries = config.get("queries", {})
 
     if query_name not in queries:
