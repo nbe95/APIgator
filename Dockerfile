@@ -18,6 +18,8 @@ RUN pdm install --check --prod --no-editable
 # Run stage
 FROM python:$PYTHON_BASE
 
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
