@@ -72,7 +72,7 @@ async def execute_query(query_def):
 
                 fields = endpoint.get("fields", {})
                 if isinstance(fields, list):
-                    fields = {field: field for field in fields}
+                    fields = {field: f".{field}" for field in fields}
 
                 for output_key, jq_filter in fields.items():
                     try:
