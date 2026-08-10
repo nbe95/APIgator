@@ -45,8 +45,14 @@ queries:                                      # predefined queries
         memory_percent: .cores[0].percent | round   # jq filter for rounded value
 
     - url: http://yet.another.api/all
+      fields:                                 # Short syntax for simple fields
+        - foo
+        - bar
+
+    - url: http://yet.another.api/all
       fields:
         result: .                             # Fetch entire reponse as data
+
 
   # Example with optional properties and complex jq filters
   full-example:                               # query named "full-example"

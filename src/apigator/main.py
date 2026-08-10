@@ -64,26 +64,28 @@ async def execute_query(query_def):
                 )
                 api_data = response.json()
 
-                fields = endpoint.get("fields", [])
-                for field in fields:
-                    for output_key, jq_filter in field.items():
-                        try:
-                            result = subprocess.run(
-                                ("jq", jq_filter),
-                                input=json.dumps(api_data),
-                                capture_output=True,
-                                text=True,
-                            )
-                            if result.returncode == 0:
-                                value = json.loads(result.stdout)
-                            else:
-                                raise QueryError(
-                                    f"jq filter failed for '{output_key}': {result.stderr}"
-                                )
-                            results[output_key] = value
+                fields = endpoint.get("fields", {})
+                if isinstance(fields, list):
+                    fields = {field: field for field in fields}
 
-                        except Exception as e:
-                            raise QueryError(f"Error processing field '{output_key}': {e!s}")
+                for output_key, jq_filter in fields.items():
+                    try:
+                        result = subprocess.run(
+                            ("jq", jq_filter),
+                            input=json.dumps(api_data),
+                            capture_output=True,
+                            text=True,
+                        )
+                        if result.returncode == 0:
+                            value = json.loads(result.stdout)
+                        else:
+                            raise QueryError(
+                                f"jq filter failed for '{output_key}': {result.stderr}"
+                            )
+                        results[output_key] = value
+
+                    except Exception as e:
+                        raise QueryError(f"Error processing field '{output_key}': {e!s}")
 
             except httpx.ConnectError:
                 raise QueryError(f"Connection failed for '{endpoint['url']}'")
