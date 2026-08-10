@@ -5,7 +5,7 @@ single endpoint with field extraction and transformation.
 
 ## Features
 
-- 🔗 Aggregate multiple APIs in one query
+- 🔗 Aggregate multiple predefined APIs calls in one query
 - 🎯 Extract specific fields from responses
 - 🔄 Transform data with jq filters
 - 🐳 Self-hosted Docker container
@@ -13,16 +13,18 @@ single endpoint with field extraction and transformation.
 
 ## Quick Start
 
+Spin up a Docker container and edit your configuration as decribed below.
+
 ```sh
 docker run -d \
   -p 8080:8080 \
-  -v $(pwd)/config.yaml:/config/config.yaml \
+  -v $(pwd)/config.yaml:/app/config.yaml \
   nbe95/apigator:latest
 ```
 
-## Configuration
+### Configuration
 
-First, create a configuration file named `config.yaml`:
+Simply create a configuration file named `config.yaml` and mount it into the container:
 
 ```yaml
 # Server configuration
@@ -41,7 +43,7 @@ queries:
 
     - url: https://jsonplaceholder.typicode.com/posts/2
       fields:
-        another-title: .title                             # re-mapping of fields
+        another-title: .title                             # remapping of fields
         another-body: .body
         nested: .some.nested.object                       # nested objects, arrays, ...
         array: .some.indexed[42].item
@@ -55,7 +57,7 @@ queries:
         rounded_2decimals: (.[42].userId * 100 | round) / 100
 
 
-  # Full example with optional properties:
+  # Full example with optional properties
   full-example:
     - url: http://my.api/endpoint?foo=bar
       method: POST                            # optional HTTP method, defaults to GET
@@ -77,7 +79,7 @@ queries:
 
 A GET request with a specified query name returns all aggregated data at once.
 
-Using the example from above:
+Using the config example from above:
 
 ```sh
 curl http://localhost:8080/query/my-posts
@@ -110,11 +112,11 @@ curl http://localhost:8080/query/my-posts
 ```
 
 > [!NOTE]
-> Note that any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
+> Any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
 
-## Environment Variables
+### Environment Variables
 
-Always store sensitive values and credentials in an environment file. Reference it with
+Always store sensitive values and credentials in an environment file. Reference them with
 `${SECRET_STUFF}`, for example:
 
 ```yaml
@@ -122,7 +124,7 @@ headers:
   Authorization: Bearer ${SOME_API_TOKEN}
 ```
 
-## Docker Compose
+### Docker Compose
 
 ```yaml
 services:
@@ -141,16 +143,18 @@ services:
 | Endpoint      | Method    | Description                               |
 |---------------|-----------|-------------------------------------------|
 | /query/{name} | GET       | Execute query and return aggregated data  |
-| /health       | GET       | Health check                              |
+| /health       | GET       | General health check                      |
+
+## ⚠️ Security Considerations
+
+APIgator is intended for internal use only:
+
+1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal URLs.
+1. **SSRF attacks** – Only trusted admins should modify the config.
+1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
+1. **No built-in auth** – Use a reverse proxy with authentication.
+1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
 
 > [!WARNING]
-> APIgator is intended for internal use only:
->
-> 1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal URLs.
-> 1. **SSRF attacks** – Only trusted admins should modify the config.
-> 1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
-> 1. **No built-in auth** – Use a reverse proxy with authentication.
-> 1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
->
 > When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting
 > and network isolation.
