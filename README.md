@@ -30,6 +30,9 @@ docker run -d \
   nbe95/apigator:latest
 ```
 
+Use `latest` for the most recent version with automatic updates, or pin to specific versions with
+SemVer tags (`1.2.3`, `1.2`, `1`) for stability.
+
 ### Configuration
 
 Create a configuration file named `config.yaml` and mount it into the container:
