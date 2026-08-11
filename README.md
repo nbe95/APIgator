@@ -126,6 +126,7 @@ curl http://localhost:8080/query/my-posts
 services:
   apigator:
     image: nbe95/apigator:latest
+    restart: unless-stopped
     ports:
       - 8080:8080
     volumes:
