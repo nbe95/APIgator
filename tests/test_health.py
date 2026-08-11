@@ -20,7 +20,7 @@ class TestHealthEndpoint:
         response = client.get("/health")
         assert response.status_code == 200
 
-    def test_health_response_structure(self, client: TestClient):
+    def test_health_response(self, client: TestClient):
         """Test that the health endpoint returns valid response structure."""
         response = client.get("/health")
         data = response.json()

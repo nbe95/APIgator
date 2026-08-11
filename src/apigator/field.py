@@ -27,11 +27,8 @@ class Field:
 
         # Handle dict format
         if isinstance(definition, dict):
-            results: list[Field] = []
-            for key, path in definition.items():
-                if key in (f.key for f in results):
-                    raise NameError(f"Duplicate field definition for '{key}'")
-                results.append(Field(key=key, path=path, is_jq_filter=True))
-            return results
+            return [
+                Field(key=key, path=path, is_jq_filter=True) for key, path in definition.items()
+            ]
 
         raise TypeError("Invalid field definition.")

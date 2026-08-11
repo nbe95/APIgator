@@ -9,8 +9,10 @@ import yaml
 class Config:
     """Manages application configuration loaded from config files."""
 
-    def __init__(self):
+    def __init__(self, config_file: str | None = None):
         self._data: dict[str, Any] = {}
+        if config_file:
+            self.load_from_file(config_file)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Retrieve a configuration value by key with a default fallback."""
