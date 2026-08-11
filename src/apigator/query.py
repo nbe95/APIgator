@@ -38,6 +38,14 @@ async def execute_query(query_def) -> dict[str, Any]:
                     content=json.dumps(endpoint.get("body")),
                     timeout=timeout,
                 )
+
+                if response.is_error:
+                    raise QueryError(
+                        "Upstream API threw an error:"
+                        f" {response.status_code} {response.reason_phrase}"
+                    )
+
+                # Parse API response
                 data = response.json()
 
                 # Parse field definition and extract desired values from API response
