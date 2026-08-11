@@ -11,6 +11,12 @@ single endpoint with field extraction and transformation.
 - 🐳 Self-hosted Docker container
 - ⚡ Fast, async request handling
 
+## Use Cases
+
+- **Simplify cascaded requests** – Combine multiple dependent API calls into a single GET request
+- **Externalize credentials** – Keep sensitive credentials isolated from client applications for better security and trust
+- **Aggregate multi-endpoint data** – Fetch and merge data from multiple endpoints in one query (useful for dashboards when the framework doesn't support this natively)
+
 ## Usage
 
 ### Quick Start
@@ -142,7 +148,7 @@ services:
 | /query/{name} | GET       | Execute query and return aggregated data  |
 | /health       | GET       | General health check                      |
 
-## ⚠️ Security Considerations
+## :warning:️ Security Considerations
 
 APIgator is intended for internal use only:
 
