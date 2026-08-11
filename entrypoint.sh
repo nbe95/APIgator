@@ -10,4 +10,4 @@ if [ ! -f "$CONFIG_FILE" ]; then
     cp "$CONFIG_DEFAULT" "$CONFIG_FILE"
 fi
 
-python ./src/apigator/main.py
+python -m src.apigator

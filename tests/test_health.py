@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from apigator.main import INSTANCE_ID, app
+from apigator.__main__ import INSTANCE_ID, app
 
 
 @pytest.fixture
