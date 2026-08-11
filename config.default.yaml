@@ -1,4 +1,4 @@
-# Basic server configuration
+# Server configuration
 host: 0.0.0.0
 port: 8080
 default_timeout: 10
@@ -9,20 +9,20 @@ queries:
   my-posts:
     - url: https://jsonplaceholder.typicode.com/posts/1   # upstream APIs to fetch
       fields:
-        - title                                           # fields to aggregate
+        - title                               # fields to aggregate (short syntax, top-level only)
         - body
 
     - url: https://jsonplaceholder.typicode.com/posts/2
       fields:
-        another-title: .title                             # re-mapping of fields
-        another-body: .body
-        nested: .some.nested.object                       # nested objects, arrays, ...
+        remapped-title: .title                # explicit syntax (enables remapping of fields)
+        remapped-body: .body
+        nested: .some.nested.object           # nested objects, arrays, ...
         array: .some.indexed[42].item
-        everything: .
+        everything: .                         # fetch entire response at once
 
     - url: https://jsonplaceholder.typicode.com/posts
       fields:
-        total_posts: . | length                           # complex jq filters
+        total_posts: . | length               # some complex jq filters
         sum_of_ids: map(.id) | add
         rounded: .[42].userId | round
         rounded_2decimals: (.[42].userId * 100 | round) / 100

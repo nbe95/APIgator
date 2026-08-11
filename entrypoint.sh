@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-CONFIG_FILE="./config.yaml"
-CONFIG_DEFAULT="./config.default.yaml"
+CONFIG_FILE="./config/config.yaml"
+CONFIG_DEFAULT="./config/default.yaml"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "⚠️ Config file not found at $CONFIG_FILE"
+    echo "Config file not found at $CONFIG_FILE"
     echo "Starting with default config..."
     cp "$CONFIG_DEFAULT" "$CONFIG_FILE"
 fi
 
-python ./src/apigator/main.py
+python -m src.apigator

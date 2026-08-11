@@ -11,20 +11,31 @@ single endpoint with field extraction and transformation.
 - 🐳 Self-hosted Docker container
 - ⚡ Fast, async request handling
 
-## Quick Start
+## Use Cases
+
+- **Simplify cascaded requests** – Combine multiple dependent API calls into a single GET request
+- **Externalize credentials** – Keep sensitive credentials isolated from client applications for better security and trust
+- **Aggregate multi-endpoint data** – Fetch and merge data from multiple endpoints in one query (useful for dashboards when the framework doesn't support this natively)
+
+## Usage
+
+### Quick Start
 
 Spin up a Docker container and edit your configuration as decribed below.
 
 ```sh
 docker run -d \
   -p 8080:8080 \
-  -v $(pwd)/config.yaml:/app/config.yaml \
+  -v ./config:/app/config \
   nbe95/apigator:latest
 ```
 
+Use `latest` for the most recent version with automatic updates, or pin to specific versions with
+SemVer tags (`1.2.3`, `1.2`, `1`) for stability.
+
 ### Configuration
 
-Simply create a configuration file named `config.yaml` and mount it into the container:
+Create a configuration file named `config.yaml` and mount it into the container:
 
 ```yaml
 # Server configuration
@@ -38,20 +49,20 @@ queries:
   my-posts:
     - url: https://jsonplaceholder.typicode.com/posts/1   # upstream APIs to fetch
       fields:
-        - title                                           # fields to aggregate
+        - title                               # fields to aggregate (short syntax, top-level only)
         - body
 
     - url: https://jsonplaceholder.typicode.com/posts/2
       fields:
-        another-title: .title                             # remapping of fields
-        another-body: .body
-        nested: .some.nested.object                       # nested objects, arrays, ...
+        remapped-title: .title                # explicit syntax (enables remapping of fields)
+        remapped-body: .body
+        nested: .some.nested.object           # nested objects, arrays, ...
         array: .some.indexed[42].item
-        everything: .
+        everything: .                         # fetch entire response at once
 
     - url: https://jsonplaceholder.typicode.com/posts
       fields:
-        total_posts: . | length                           # complex jq filters
+        total_posts: . | length               # some complex jq filters
         sum_of_ids: map(.id) | add
         rounded: .[42].userId | round
         rounded_2decimals: (.[42].userId * 100 | round) / 100
@@ -74,10 +85,12 @@ queries:
         ...
 
 ```
+Note that after each change, you will need to restart the container for the new config to take
+effect.
 
-## Usage
+### Running APIgator
 
-A GET request with a specified query name returns all aggregated data at once.
+A simple GET request with a specified query name returns all aggregated data at once.
 
 Using the config example from above:
 
@@ -92,8 +105,8 @@ curl http://localhost:8080/query/my-posts
     "data": {
         "title": "sunt aut facere ...",
         "body": "quia et suscipit ...",
-        "another-title": "qui est esse",
-        "another-body": "est rerum tempore ...",
+        "remapped-title": "qui est esse",
+        "remapped-body": "est rerum tempore ...",
         "nested": null,
         "array": null,
         "everything": {
@@ -114,15 +127,9 @@ curl http://localhost:8080/query/my-posts
 > [!NOTE]
 > Any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
 
-### Environment Variables
-
-Always store sensitive values and credentials in an environment file. Reference them with
-`${SECRET_STUFF}`, for example:
-
-```yaml
-headers:
-  Authorization: Bearer ${SOME_API_TOKEN}
-```
+> [!IMPORTANT]
+> Always store sensitive values and credentials in an environment file. Reference them with
+> `${SECRET_STUFF}` in your configuration.
 
 ### Docker Compose
 
@@ -130,10 +137,11 @@ headers:
 services:
   apigator:
     image: nbe95/apigator:latest
+    restart: unless-stopped
     ports:
       - 8080:8080
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config:/app/config
     environment:
       - SOME_API_TOKEN=...
 ```
@@ -145,15 +153,20 @@ services:
 | /query/{name} | GET       | Execute query and return aggregated data  |
 | /health       | GET       | General health check                      |
 
-## ⚠️ Security Considerations
+> [!NOTE]
+> Only JSON responses are supported for any upstream queries.
+
+## :warning:️ Security Considerations
 
 APIgator is intended for internal use only:
 
-1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal URLs.
+1. **Config is sensitive** – Never commit `config.yaml`. It may contain API credentials and internal
+   URLs.
 1. **SSRF attacks** – Only trusted admins should modify the config.
 1. **No HTTPS** – Add TLS via reverse proxy (Traefik, Caddy, ...).
 1. **No built-in auth** – Use a reverse proxy with authentication.
-1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately for your upstream APIs.
+1. **Timeouts** – To prevent freezing, use `default_timeout` and per-endpoint timeouts appropriately
+   for your upstream APIs.
 
 > [!WARNING]
 > When running APIgator in production, use a reverse proxy with authentication, HTTPS, rate limiting

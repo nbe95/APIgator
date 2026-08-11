@@ -1,7 +1,8 @@
 services:
   apigator:
     image: nbe95/apigator:latest
+    restart: unless-stopped
     ports:
       - 8080:8080
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config:/app/config

@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from apigator.main import INSTANCE_ID, app
+from apigator.__main__ import INSTANCE_ID, app
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ class TestHealthEndpoint:
         response = client.get("/health")
         assert response.status_code == 200
 
-    def test_health_response_structure(self, client: TestClient):
+    def test_health_response(self, client: TestClient):
         """Test that the health endpoint returns valid response structure."""
         response = client.get("/health")
         data = response.json()
