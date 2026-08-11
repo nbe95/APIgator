@@ -186,7 +186,9 @@ class TestExecuteQuery:
             mock_instance.request.return_value = mock_response
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            with pytest.raises(QueryError, match="Upstream API threw an error: 500 Internal Server Error"):
+            with pytest.raises(
+                QueryError, match="Upstream API threw an error: 500 Internal Server Error"
+            ):
                 await execute_query(query_def)
 
     @pytest.mark.asyncio
@@ -290,7 +292,9 @@ class TestExecuteQuery:
             mock_instance.request.side_effect = [response1, response2]
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            with pytest.raises(QueryError, match="Upstream API threw an error: 503 Service Unavailable"):
+            with pytest.raises(
+                QueryError, match="Upstream API threw an error: 503 Service Unavailable"
+            ):
                 await execute_query(query_def)
 
     @pytest.mark.asyncio
@@ -379,7 +383,9 @@ class TestExecuteQuery:
             mock_instance = AsyncMock()
             mock_response = MagicMock()
             mock_response.is_error = False
-            mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "invalid json", 0)
+            mock_response.json.side_effect = json.JSONDecodeError(
+                "Expecting value", "invalid json", 0
+            )
             mock_instance.request.return_value = mock_response
             mock_client.return_value.__aenter__.return_value = mock_instance
 
@@ -438,11 +444,12 @@ class TestExecuteQuery:
 
     @pytest.mark.asyncio
     async def test_execute_query_http_error_with_error_status(self):
-        """Test that various error status codes (4xx, 5xx) are properly detected and fail the query."""
+        """Test that various error status codes (4xx, 5xx) are properly detected and fail the
+        query."""
         error_codes = [400, 401, 429, 500, 501, 503, 504]
 
         for status_code in error_codes:
-            query_def = [{"url": f"https://api.example.com/data", "method": "GET"}]
+            query_def = [{"url": "https://api.example.com/data", "method": "GET"}]
 
             with patch("apigator.query.httpx.AsyncClient") as mock_client:
                 mock_instance = AsyncMock()

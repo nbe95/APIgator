@@ -1,6 +1,6 @@
 """Response formatting utilities for API responses."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 
@@ -15,7 +15,7 @@ def create_response(status: RspStatus, data: dict | None = None, error: str | No
     """Create a standardized API response with consistent structure."""
     return {
         "status": status.value,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": data or {},
         "error": error or "",
     }
