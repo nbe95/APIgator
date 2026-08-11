@@ -29,7 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/.venv/ /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 COPY src /app/src
-COPY entrypoint.sh config.default.yaml /app
+COPY entrypoint.sh /app
+COPY config.default.yaml /app/config/default.yaml
 
 RUN chmod +x /app/entrypoint.sh
 

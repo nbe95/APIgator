@@ -26,7 +26,7 @@ Spin up a Docker container and edit your configuration as decribed below.
 ```sh
 docker run -d \
   -p 8080:8080 \
-  -v $(pwd)/config.yaml:/app/config.yaml \
+  -v ./config:/app/config \
   nbe95/apigator:latest
 ```
 
@@ -139,7 +139,7 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config:/app/config
     environment:
       - SOME_API_TOKEN=...
 ```

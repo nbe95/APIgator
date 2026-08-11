@@ -7,7 +7,7 @@ from uuid import uuid4
 VERSION = os.getenv("APIGATOR_VERSION") or "(unknown)"
 
 # Path to the configuration file that defines API queries and aggregation rules
-CONFIG_FILE = "./config.yaml"
+CONFIG_FILE = "./config/config.yaml"
 
 # Unique identifier for this APIgator instance, generated at startup
 # Used for self-referencing request detection to prevent infinite loops
