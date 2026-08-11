@@ -85,6 +85,8 @@ queries:
         ...
 
 ```
+Note that after each change, you will need to restart the container for the new config to take
+effect.
 
 ### Running APIgator
 
@@ -150,6 +152,9 @@ services:
 |---------------|-----------|-------------------------------------------|
 | /query/{name} | GET       | Execute query and return aggregated data  |
 | /health       | GET       | General health check                      |
+
+> [!NOTE]
+> Only JSON responses are supported for any upstream queries.
 
 ## :warning:️ Security Considerations
 
