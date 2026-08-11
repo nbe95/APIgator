@@ -1,13 +1,14 @@
 """Query execution engine for API aggregation and jq-based filtering."""
 
 import json
-import subprocess
 from typing import Any
 
 import httpx
 
 from .config import config
 from .constants import INSTANCE_ID
+from .field import Field
+from .jq import run_jq_filter
 
 
 class QueryError(Exception):
@@ -19,7 +20,7 @@ class QueryError(Exception):
 
 async def execute_query(query_def) -> dict[str, Any]:
     """Execute a query definition by fetching and aggregating data from multiple endpoints."""
-    fields: dict[str, Any] = {}
+    result: dict[str, Any] = {}
     default_timeout = config.get("default_timeout", 10)
 
     async with httpx.AsyncClient() as client:
@@ -39,13 +40,16 @@ async def execute_query(query_def) -> dict[str, Any]:
                 )
                 data = response.json()
 
-                # Apply jq filters to extract specific fields from the API response
-                fields = _parse_fields(endpoint.get("fields"))
-                for key, jq_filter in fields.items():
+                # Parse field definition and extract desired values from API response
+                fields = Field.parse_field_def(endpoint.get("fields"))
+                for field in fields:
                     try:
-                        fields[key] = _apply_jq_filter(data, jq_filter)
+                        if field.is_jq_filter:
+                            result[field.key] = run_jq_filter(data, field.path)
+                        else:
+                            result[field.key] = dict(data).get(field.path)
                     except Exception as e:
-                        raise QueryError(f"Error processing field '{key}': {e!s}")
+                        raise QueryError(f"Error processing field '{field.key}': {e!s}")
 
             except httpx.ConnectError:
                 raise QueryError(f"Connection failed for '{endpoint['url']}'")
@@ -56,33 +60,4 @@ async def execute_query(query_def) -> dict[str, Any]:
             except Exception as e:
                 raise QueryError(f"Error processing endpoint '{endpoint['url']}': {e!s}")
 
-    return fields
-
-
-def _apply_jq_filter(data: Any, jq_filter: str) -> str:
-    """Run jq filters on specified data."""
-    result = subprocess.run(
-        ("jq", jq_filter), input=json.dumps(data), capture_output=True, text=True
-    )
-    if result.returncode == 0:
-        value = json.loads(result.stdout)
-    else:
-        raise QueryError(f"jq filter failed for '{jq_filter}': {result.stderr}")
-    return value
-
-
-def _parse_fields(field_definition: list[str] | dict[str, str] | None) -> dict[str, str]:
-    """Parse different possible types of an API field definition."""
-    # Handle empty definition
-    if field_definition is None:
-        return {}
-
-    # Handle list format (top-level only)
-    if isinstance(field_definition, list):
-        return {str(field): f".{field}" for field in field_definition}
-
-    # Handle dict format
-    if isinstance(field_definition, dict):
-        return dict(field_definition)
-
-    raise TypeError("Invalid field definition.")
+    return result
