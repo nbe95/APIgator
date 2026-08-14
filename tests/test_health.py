@@ -28,7 +28,7 @@ class TestHealthEndpoint:
         assert data["status"] == "success"
         assert isinstance(data["timestamp"], str)
         assert isinstance(data["data"], dict)
-        assert isinstance(data["error"], str)
+        assert data["message"] is None
 
         assert data["data"].get("instance_id") == INSTANCE_ID
 

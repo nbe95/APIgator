@@ -127,7 +127,7 @@ curl http://localhost:8080/query/my-posts
         "rounded": 5,
         "rounded_2decimals": 5.00
     },
-    "error": ""
+    "message": null
 }
 ```
 
