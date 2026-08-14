@@ -2,7 +2,7 @@
 set -e
 
 CONFIG_FILE="./config/config.yaml"
-CONFIG_DEFAULT="./config/default.yaml"
+CONFIG_DEFAULT="./config.default.yaml"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Config file not found at $CONFIG_FILE"
