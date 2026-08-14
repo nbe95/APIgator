@@ -8,6 +8,7 @@ single endpoint with field extraction and transformation.
 - 🔗 Aggregate multiple predefined APIs calls in one query
 - 🎯 Extract specific fields from responses
 - 🔄 Transform data with jq filters
+- 📅 Jinja2 templates with predefined time variables and filters
 - 🐳 Self-hosted Docker container
 - ⚡ Fast, async request handling
 
@@ -21,7 +22,7 @@ single endpoint with field extraction and transformation.
 
 ### Quick Start
 
-Spin up a Docker container and edit your configuration as decribed below.
+Spin up a Docker container and edit your configuration as described below.
 
 ```sh
 docker run -d \
@@ -87,6 +88,28 @@ queries:
 ```
 Note that after each change, you will need to restart the container for the new config to take
 effect.
+
+The arguments `headers`, `params` and `body` all accept Jinja2 based templates with predefined time
+constants and filters evaluated at runtime. This means that you can define dynamic, time dependant
+parameters in your upstream queries, like so:
+
+```yaml
+params:
+  start_date: "{{ today | strftime }}"
+  end_date: "{{ tomorrow | strftime }}"
+  this_week: "{{ this_week_start | strftime }}"
+  months:
+    last:
+      - "{{ last_month_start | strftime }}"
+      - "{{ last_month_end | strftime }}"
+  us_date_format: "{{ yesterday | strftime('%m/%d/%Y') }}"
+  weird_date_format: "{{ next_year_start | strftime('%Y%m%d') }}"
+  ...
+...
+```
+
+The `strftime` filter formats any datetime object as `YYYY-MM-DD`, but will take any custom format
+argument if provided. Take a look [here](src/apigator/jinja.py) to see what's supported.
 
 ### Running APIgator
 
