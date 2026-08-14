@@ -44,37 +44,44 @@ class JinjaHandler:
         now = datetime.now()
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        self.env.globals.update(
-            {
-                # Basics
-                "today": today,
-                "tomorrow": today + timedelta(days=1),
-                "yesterday": today - timedelta(days=1),
-                # This time period
-                "this_week_start": today - timedelta(days=today.weekday()),
-                "this_week_end": today + timedelta(days=6 - today.weekday()),
-                "this_month_start": today.replace(day=1),
-                "this_month_end": (today.replace(day=1) + timedelta(days=32)).replace(day=1)
-                - timedelta(days=1),
-                "this_year_start": today.replace(month=1, day=1),
-                "this_year_end": today.replace(month=12, day=31),
-                # Last time period
-                "last_week_start": today - timedelta(days=today.weekday() + 7),
-                "last_week_end": today - timedelta(days=today.weekday() + 1),
-                "last_month_start": (today.replace(day=1) - timedelta(days=1)).replace(day=1),
-                "last_month_end": today.replace(day=1) - timedelta(days=1),
-                "last_year_start": today.replace(year=today.year - 1, month=1, day=1),
-                "last_year_end": today.replace(year=today.year - 1, month=12, day=31),
-                # Next time period
-                "next_week_start": today + timedelta(days=7 - today.weekday()),
-                "next_week_end": today + timedelta(days=13 - today.weekday()),
-                "next_month_start": (today.replace(day=1) + timedelta(days=32)).replace(day=1),
-                "next_month_end": (today.replace(day=1) + timedelta(days=64)).replace(day=1)
-                - timedelta(days=1),
-                "next_year_start": today.replace(year=today.year + 1, month=1, day=1),
-                "next_year_end": today.replace(year=today.year + 1, month=12, day=31),
-            }
-        )
+        basics = {
+            "today": today,
+            "tomorrow": today + timedelta(days=1),
+            "yesterday": today - timedelta(days=1),
+        }
+        this_period = {
+            "this_week_start": today - timedelta(days=today.weekday()),
+            "this_week_end": today + timedelta(days=6 - today.weekday()),
+            "this_month_start": today.replace(day=1),
+            "this_month_end": (today.replace(day=1) + timedelta(days=32)).replace(day=1)
+            - timedelta(days=1),
+            "this_year_start": today.replace(month=1, day=1),
+            "this_year_end": today.replace(month=12, day=31),
+        }
+
+        prev_period = {
+            "last_week_start": today - timedelta(days=today.weekday() + 7),
+            "last_week_end": today - timedelta(days=today.weekday() + 1),
+            "last_month_start": (today.replace(day=1) - timedelta(days=1)).replace(day=1),
+            "last_month_end": today.replace(day=1) - timedelta(days=1),
+            "last_year_start": today.replace(year=today.year - 1, month=1, day=1),
+            "last_year_end": today.replace(year=today.year - 1, month=12, day=31),
+        }
+
+        next_period = {
+            "next_week_start": today + timedelta(days=7 - today.weekday()),
+            "next_week_end": today + timedelta(days=13 - today.weekday()),
+            "next_month_start": (today.replace(day=1) + timedelta(days=32)).replace(day=1),
+            "next_month_end": (today.replace(day=1) + timedelta(days=64)).replace(day=1)
+            - timedelta(days=1),
+            "next_year_start": today.replace(year=today.year + 1, month=1, day=1),
+            "next_year_end": today.replace(year=today.year + 1, month=12, day=31),
+        }
+
+        self.env.globals.update(basics)
+        self.env.globals.update(this_period)
+        self.env.globals.update(prev_period)
+        self.env.globals.update(next_period)
 
         def strftime_filter(dt, fmt="%Y-%m-%d"):
             """Format datetime object with strftime"""
