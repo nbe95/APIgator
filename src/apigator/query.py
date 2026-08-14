@@ -48,10 +48,12 @@ async def execute_query(query_def) -> dict[str, Any]:
                     )
 
                 # Parse field definition and extract desired values from API response
+                data: Any = response.json()
                 fields = parse_field_def(endpoint.get("fields"))
                 for field in fields:
                     try:
-                        field.parse(response.json())
+                        parsed_field = field.parse(data)
+                        result.update(parsed_field)
                     except Exception as e:
                         raise QueryError(f"Error processing field '{field.key}': {e!s}")
 
