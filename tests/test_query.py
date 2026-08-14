@@ -139,9 +139,9 @@ class TestExecuteQuery:
 
         await execute_query(query_def)
 
-        # Verify timeout was passed to request
-        mock_instance.request.assert_called_once()
-        call_kwargs = mock_instance.request.call_args[1]
+        # Verify timeout was passed to build_request
+        mock_instance.build_request.assert_called_once()
+        call_kwargs = mock_instance.build_request.call_args[1]
         assert call_kwargs["timeout"] == 30
 
     @pytest.mark.asyncio
