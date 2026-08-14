@@ -5,7 +5,7 @@ from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
 from .config import config
-from .constants import CONFIG_FILE, INSTANCE_ID, VERSION
+from .constants import CONFIG_FILE, DEBUG, INSTANCE_ID, VERSION
 from .query import QueryError, execute_query
 from .response import RspStatus, create_response
 
@@ -71,6 +71,12 @@ async def get_query(query_name: str, x_apigator_instance_id: str = Header(None))
 
 if __name__ == "__main__":
     print(f"APIgator v{VERSION} running.")
+
+    if DEBUG:
+        print(
+            "WARNING: Running in DEBUG mode!"
+            " This can produce very verbose output and impact performance."
+        )
 
     # Load configuration
     config.load_from_file(CONFIG_FILE)

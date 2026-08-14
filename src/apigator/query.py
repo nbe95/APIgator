@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from .config import config
-from .constants import INSTANCE_ID
+from .constants import DEBUG, INSTANCE_ID
 from .field import parse_field_def
 from .jinja import JinjaHandler
 
@@ -31,15 +31,29 @@ async def execute_query(query_def) -> dict[str, Any]:
                 headers = (endpoint.get("headers") or {}).copy()
                 headers["X-APIgator-Instance-ID"] = INSTANCE_ID
 
-                # Perform upstream query with parsed data from Jinja2 templates
-                response = await client.request(
+                # Prepare upstream query with parsed data from Jinja2 templates...
+                body = endpoint.get("body")
+                request = client.build_request(
                     method=endpoint.get("method", "GET"),
                     url=endpoint["url"],
                     headers=jinja.render(headers),
                     params=jinja.render(endpoint.get("params")),
-                    content=json.dumps(jinja.render(endpoint.get("body"))),
+                    content=json.dumps(jinja.render(body)) if body else None,
                     timeout=timeout,
                 )
+
+                if DEBUG:
+                    print("-" * 50 + " UPSTREAM REQUEST START")
+                    print(vars(request))
+                    print("-" * 50 + " UPSTREAM REQUEST END")
+
+                # ...and shoot!
+                response = await client.send(request)
+
+                if DEBUG:
+                    print("-" * 50 + " UPSTREAM RESPONSE START")
+                    print(vars(response))
+                    print("-" * 50 + " UPSTREAM RESPONSE END")
 
                 if response.is_error:
                     raise QueryError(
