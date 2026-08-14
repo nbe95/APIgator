@@ -7,8 +7,8 @@ import httpx
 
 from .config import config
 from .constants import INSTANCE_ID
-from .field import Field
-from .jq import run_jq_filter
+from .field import parse_field_def
+from .jinja import JinjaHandler
 
 
 class QueryError(Exception):
@@ -22,6 +22,7 @@ async def execute_query(query_def) -> dict[str, Any]:
     """Execute a query definition by fetching and aggregating data from multiple endpoints."""
     result: dict[str, Any] = {}
     default_timeout = config.get("default_timeout", 10)
+    jinja = JinjaHandler()
 
     async with httpx.AsyncClient() as client:
         for endpoint in query_def:
@@ -30,12 +31,13 @@ async def execute_query(query_def) -> dict[str, Any]:
                 headers = (endpoint.get("headers") or {}).copy()
                 headers["X-APIgator-Instance-ID"] = INSTANCE_ID
 
+                # Perform upstream query with parsed data from Jinja2 templates
                 response = await client.request(
                     method=endpoint.get("method", "GET"),
                     url=endpoint["url"],
-                    headers=headers,
-                    params=endpoint.get("params"),
-                    content=json.dumps(endpoint.get("body")),
+                    headers=jinja.render(headers),
+                    params=jinja.render(endpoint.get("params")),
+                    content=json.dumps(jinja.render(endpoint.get("body"))),
                     timeout=timeout,
                 )
 
@@ -45,17 +47,11 @@ async def execute_query(query_def) -> dict[str, Any]:
                         f" {response.status_code} {response.reason_phrase}"
                     )
 
-                # Parse API response
-                data = response.json()
-
                 # Parse field definition and extract desired values from API response
-                fields = Field.parse_field_def(endpoint.get("fields"))
+                fields = parse_field_def(endpoint.get("fields"))
                 for field in fields:
                     try:
-                        if field.is_jq_filter:
-                            result[field.key] = run_jq_filter(data, field.path)
-                        else:
-                            result[field.key] = dict(data).get(field.path)
+                        field.parse(response.json())
                     except Exception as e:
                         raise QueryError(f"Error processing field '{field.key}': {e!s}")
 
