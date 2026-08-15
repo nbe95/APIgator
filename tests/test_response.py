@@ -17,16 +17,16 @@ class TestCreateResponse:
 
         assert response["status"] == "success"
         assert response["data"] == {"key": "value"}
-        assert response["error"] == ""
+        assert response["message"] is None
         assert isinstance(response["timestamp"], str)
 
     def test_create_response_error(self):
         """Test creating an error response."""
-        response = create_response(RspStatus.ERROR, error="Something went wrong")
+        response = create_response(RspStatus.ERROR, message="Something went wrong")
 
         assert response["status"] == "error"
         assert response["data"] == {}
-        assert response["error"] == "Something went wrong"
+        assert response["message"] == "Something went wrong"
         assert isinstance(response["timestamp"], str)
 
     def test_create_response_default_values(self):
@@ -35,7 +35,7 @@ class TestCreateResponse:
 
         assert response["status"] == "success"
         assert response["data"] == {}
-        assert response["error"] == ""
+        assert response["message"] is None
 
     def test_create_response_timestamp_is_iso8601(self):
         """Test that response timestamp is valid ISO 8601 format."""
@@ -49,8 +49,8 @@ class TestCreateResponse:
     def test_create_response_with_both_data_and_error(self):
         """Test response with both data and error populated."""
         data = {"partial": "result"}
-        response = create_response(RspStatus.ERROR, data=data, error="Partial failure")
+        response = create_response(RspStatus.ERROR, data=data, message="Partial failure")
 
         assert response["status"] == "error"
         assert response["data"] == {"partial": "result"}
-        assert response["error"] == "Partial failure"
+        assert response["message"] == "Partial failure"

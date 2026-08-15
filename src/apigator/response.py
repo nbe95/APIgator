@@ -11,11 +11,11 @@ class RspStatus(Enum):
     ERROR = "error"
 
 
-def create_response(status: RspStatus, data: dict | None = None, error: str | None = None):
+def create_response(status: RspStatus, data: dict | None = None, message: str | None = None):
     """Create a standardized API response with consistent structure."""
     return {
         "status": status.value,
         "timestamp": datetime.now(UTC).isoformat(),
         "data": data or {},
-        "error": error or "",
+        "message": message or None,
     }

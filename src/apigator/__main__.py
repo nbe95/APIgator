@@ -5,7 +5,7 @@ from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
 from .config import config
-from .constants import CONFIG_FILE, INSTANCE_ID, VERSION
+from .constants import CONFIG_FILE, DEBUG, INSTANCE_ID, VERSION
 from .query import QueryError, execute_query
 from .response import RspStatus, create_response
 
@@ -36,7 +36,7 @@ async def get_query(query_name: str, x_apigator_instance_id: str = Header(None))
             status_code=400,
             content=create_response(
                 RspStatus.ERROR,
-                error="Self-referencing request detected."
+                message="Self-referencing request detected."
                 " You didn't want to create an infinite loop, did you?",
             ),
         )
@@ -48,7 +48,7 @@ async def get_query(query_name: str, x_apigator_instance_id: str = Header(None))
     if query_name not in queries:
         return JSONResponse(
             status_code=404,
-            content=create_response(RspStatus.ERROR, error=f"Query '{query_name}' not found"),
+            content=create_response(RspStatus.ERROR, message=f"Query '{query_name}' not found"),
         )
 
     # Execute the query and handle various error scenarios
@@ -59,18 +59,24 @@ async def get_query(query_name: str, x_apigator_instance_id: str = Header(None))
         # Return 502 for query-specific errors (connection, timeout, jq filter errors, etc.)
         return JSONResponse(
             status_code=502,
-            content=create_response(status=RspStatus.ERROR, error=e.msg),
+            content=create_response(status=RspStatus.ERROR, message=e.msg),
         )
     except Exception:
         # Return 500 for unexpected errors
         return JSONResponse(
             status_code=500,
-            content=create_response(status=RspStatus.ERROR, error="Internal server error"),
+            content=create_response(status=RspStatus.ERROR, message="Internal server error"),
         )
 
 
 if __name__ == "__main__":
     print(f"APIgator v{VERSION} running.")
+
+    if DEBUG:
+        print(
+            "WARNING: Running in DEBUG mode!"
+            " This can produce very verbose output and impact performance."
+        )
 
     # Load configuration
     config.load_from_file(CONFIG_FILE)

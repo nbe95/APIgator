@@ -1,27 +1,33 @@
 # :crocodile: APIgator
 
-A lightweight HTTP **API Aggregator** with jq filtering. Combine multiple API responses into a
-single endpoint with field extraction and transformation.
+A lightweight HTTP **API Aggregator** with jq filtering.
+Combine multiple API responses into a single endpoint with field extraction and transformation.
 
 ## Features
 
 - 🔗 Aggregate multiple predefined APIs calls in one query
 - 🎯 Extract specific fields from responses
 - 🔄 Transform data with jq filters
+- 📅 Jinja2 templates with predefined time variables and filters
 - 🐳 Self-hosted Docker container
 - ⚡ Fast, async request handling
 
 ## Use Cases
 
 - **Simplify cascaded requests** – Combine multiple dependent API calls into a single GET request
-- **Externalize credentials** – Keep sensitive credentials isolated from client applications for better security and trust
-- **Aggregate multi-endpoint data** – Fetch and merge data from multiple endpoints in one query (useful for dashboards when the framework doesn't support this natively)
+- **Externalize credentials** – Keep sensitive credentials isolated from client applications for
+  better security and trust
+- **Aggregate multi-endpoint data** – Fetch and merge data from multiple endpoints in one query
+  (useful for dashboards when the framework doesn't support this natively)
+- **Automate time-based queries** – Define dynamic parameters once in your config with Jinja2
+  templates (e.g., daily reports, weekly trends, month-over-month comparisons) without needing
+  client-side logic
 
 ## Usage
 
 ### Quick Start
 
-Spin up a Docker container and edit your configuration as decribed below.
+Spin up a Docker container and edit your configuration as described below.
 
 ```sh
 docker run -d \
@@ -83,10 +89,14 @@ queries:
         foo: bar
       fields:
         ...
-
 ```
+
 Note that after each change, you will need to restart the container for the new config to take
 effect.
+
+> [!IMPORTANT]
+> Always store sensitive values and credentials in an environment file.
+> Reference them with `${SECRET_STUFF}` in your configuration.
 
 ### Running APIgator
 
@@ -120,18 +130,42 @@ curl http://localhost:8080/query/my-posts
         "rounded": 5,
         "rounded_2decimals": 5.00
     },
-    "error": ""
+    "message": null
 }
 ```
 
 > [!NOTE]
 > Any values not found in the upstream responses will be set to `null` (e.g. "nested" and "array").
 
-> [!IMPORTANT]
-> Always store sensitive values and credentials in an environment file. Reference them with
-> `${SECRET_STUFF}` in your configuration.
+### Dynamic Queries with Jinja
+
+The arguments `headers`, `params` and `body` all accept Jinja2 based templates with predefined time
+constants and filters evaluated at runtime.
+This means that you can define dynamic, time dependant parameters in your upstream queries, like so:
+
+```yaml
+params:
+  start_date: "{{ today | strftime }}"
+  end_date: "{{ tomorrow | strftime }}"
+  this_week: "{{ this_week_start | strftime }}"
+  last_month:
+    from_to:
+      - "{{ last_month_start | strftime }}"
+      - "{{ last_month_end | strftime }}"
+  us_date_format: "{{ yesterday | strftime('%m/%d/%Y') }}"
+  weird_date_format: "{{ next_year_start | strftime('%Y%m%d') }}"
+  hello_message: "{{ 'Good morning' if now().hour < 12 else 'Good afternoon' }}"
+  ...
+```
+
+Always encapsulate Jinja syntax in quotes to not mess up the YAML.
+The `strftime` filter formats any datetime object as `YYYY-MM-DD`, but will take any custom format
+argument if provided.
+Take a look at [the source code](src/apigator/jinja.py) to see what's supported.
 
 ### Docker Compose
+
+Type it. Run it. Profit.
 
 ```yaml
 services:
