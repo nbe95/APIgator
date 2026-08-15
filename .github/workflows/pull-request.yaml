@@ -22,7 +22,7 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
       sha_short: ${{ steps.commit.outputs.sha_short }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Get commit data
         id: commit
         run: |
@@ -47,7 +47,7 @@ jobs:
     needs:
       - validate-release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
