@@ -19,6 +19,9 @@ Combine multiple API responses into a single endpoint with field extraction and 
   better security and trust
 - **Aggregate multi-endpoint data** – Fetch and merge data from multiple endpoints in one query
   (useful for dashboards when the framework doesn't support this natively)
+- **Automate time-based queries** – Define dynamic parameters once in your config with Jinja2
+  templates (e.g., daily reports, weekly trends, month-over-month comparisons) without needing
+  client-side logic
 
 ## Usage
 
