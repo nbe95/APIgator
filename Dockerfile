@@ -1,4 +1,4 @@
-ARG PYTHON_BASE=3.11-slim
+ARG PYTHON_BASE=3.14-slim
 
 
 # Build stage for pdm modules
